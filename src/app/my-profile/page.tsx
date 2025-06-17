@@ -5,9 +5,23 @@ import { useUser } from '@clerk/nextjs';
 import { Navigation } from '@/components/Navigation';
 import { ProfileForm } from '@/components/ProfileForm';
 
+interface UserData {
+    nickname?: string;
+    preferences?: {
+        email_notifications?: boolean;
+        push_notifications?: boolean;
+        theme?: 'light' | 'dark' | 'system';
+    };
+    bias?: {
+        political?: 'left' | 'center' | 'right' | 'neutral';
+        economic?: 'liberal' | 'conservative' | 'neutral';
+        social?: 'liberal' | 'conservative' | 'neutral';
+    };
+}
+
 export default function MyProfilePage() {
     const { user, isLoaded } = useUser();
-    const [userData, setUserData] = useState<any>(null);
+    const [userData, setUserData] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -106,7 +120,7 @@ export default function MyProfilePage() {
                 <Navigation />
                 <div className="max-w-2xl mx-auto py-20 text-center">
                     <h2 className="text-2xl font-bold mb-4">로그인이 필요합니다.</h2>
-                    <p className="text-gray-600">'내 성향' 페이지를 이용하려면 로그인해주세요.</p>
+                    <p className="text-gray-600">&apos;내 성향&apos; 페이지를 이용하려면 로그인해주세요.</p>
                 </div>
             </div>
         );

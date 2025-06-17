@@ -1,16 +1,10 @@
 import { getLatestNews } from '@/lib/services/news';
 import { NewsCard } from '@/components/NewsCard';
 import { getVoteForArticle } from '@/lib/services/votes';
-import { Database } from '@/types/database';
-import { auth } from '@clerk/nextjs/server';
-import { saveVote } from '@/lib/actions/votes';
 import { Navigation } from '@/components/Navigation';
 import { TrendingUp, Shield, Users, Target } from 'lucide-react';
 
-type Article = Database['public']['Tables']['articles']['Row'];
-
 export default async function Home() {
-  const { userId } = await auth();
   const articles = await getLatestNews();
   const votes = await Promise.all(
     articles.map(article => getVoteForArticle(article.id))
@@ -20,19 +14,6 @@ export default async function Home() {
     ...article,
     userVote: votes[index],
   }));
-
-  const handleVote = async (articleId: string, voteType: boolean) => {
-    if (!userId) {
-      alert('로그인이 필요합니다.');
-      return;
-    }
-    try {
-      await saveVote(articleId, voteType);
-    } catch (error) {
-      console.error('투표 실패:', error);
-      alert('투표에 실패했습니다.');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">

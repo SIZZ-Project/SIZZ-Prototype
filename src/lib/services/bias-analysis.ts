@@ -2,7 +2,6 @@ import { supabase } from '../supabase/client';
 import { Database } from '@/types/database';
 
 type Article = Database['public']['Tables']['articles']['Row'];
-type Vote = Database['public']['Tables']['votes']['Row'];
 
 interface BiasScore {
     left: number;
@@ -33,11 +32,13 @@ export async function calculateUserBias(userId: string): Promise<BiasScore> {
         };
 
         // 투표 기록을 기반으로 점수 계산
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         votes?.forEach((vote: any) => {
-            const bias = vote.articles.bias;
-            const weight = vote.vote_type ? 1 : -1; // 찬성은 +1, 반대는 -1
-
-            scores[bias as keyof BiasScore] += weight;
+            const bias = vote.articles?.bias;
+            if (bias) {
+                const weight = vote.vote_type ? 1 : -1; // 찬성은 +1, 반대는 -1
+                scores[bias as keyof BiasScore] += weight;
+            }
         });
 
         // 점수 정규화 (0-100 사이로)

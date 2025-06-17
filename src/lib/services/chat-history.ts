@@ -1,5 +1,4 @@
 import { supabase } from '../supabase/client';
-import { Database } from '@/types/database';
 
 export type ChatMessage = {
     role: 'user' | 'assistant';

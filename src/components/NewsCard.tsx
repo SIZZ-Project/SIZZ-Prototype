@@ -47,7 +47,6 @@ export function NewsCard({ article }: NewsCardProps) {
             const data = await res.json();
             if (data.messages) setChatMessages(data.messages);
         })();
-        // eslint-disable-next-line
     }, [isSignedIn, showChat, article.id]);
 
     // 대화 히스토리 저장
@@ -58,7 +57,6 @@ export function NewsCard({ article }: NewsCardProps) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ articleId: article.id, messages: chatMessages }),
         });
-        // eslint-disable-next-line
     }, [chatMessages, isSignedIn, showChat, article.id]);
 
     const handleVote = async (voteType: boolean) => {

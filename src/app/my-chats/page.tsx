@@ -40,7 +40,17 @@ export default async function MyChatsPage() {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {histories.map((history: any) => (
+                        {histories.map((history: {
+                            id: string;
+                            article_id: string;
+                            updated_at: string;
+                            messages: Array<{ content: string }>;
+                            articles?: {
+                                title?: string;
+                                source?: string;
+                                bias?: string
+                            }
+                        }) => (
                             <div key={history.id} className="bg-white rounded-lg shadow p-4">
                                 <div className="flex justify-between items-start mb-2">
                                     <div>

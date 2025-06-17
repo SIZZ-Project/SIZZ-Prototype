@@ -74,7 +74,7 @@ export default async function MyBiasPage() {
                         <div className="bg-white rounded-lg shadow p-6">
                             <h2 className="text-2xl font-bold mb-4">다양한 관점 추천</h2>
                             <div className="space-y-4">
-                                {biasData.oppositeArticles.map((article: any) => (
+                                {biasData.oppositeArticles.map((article: { id: string; title: string; source: string; bias: string }) => (
                                     <div key={article.id} className="border-b pb-4 last:border-b-0">
                                         <h3 className="font-medium text-gray-900 mb-1">{article.title}</h3>
                                         <p className="text-sm text-gray-500">

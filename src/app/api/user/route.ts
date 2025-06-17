@@ -10,7 +10,7 @@ export async function GET() {
         }
 
         const supabase = createSupabaseClient();
-        let { data: userData, error } = await supabase
+        const { data: userData, error } = await supabase
             .from('users')
             .select('*')
             .eq('clerk_id', userId)
@@ -46,7 +46,7 @@ export async function GET() {
                     console.error('Error creating user:', createError);
                     return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
                 }
-                userData = newUser; // 생성된 사용자 데이터로 설정
+                return NextResponse.json(newUser);
             } else {
                 console.error('Error fetching user:', error);
                 return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
