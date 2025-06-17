@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { getChatHistory, saveChatHistory, ChatMessage } from '@/lib/services/chat-history';
 
 export async function GET(request: Request) {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: '인증 필요' }, { status: 401 });
     const { searchParams } = new URL(request.url);
     const articleId = searchParams.get('articleId');
@@ -13,10 +13,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: '인증 필요' }, { status: 401 });
     const { articleId, messages } = await request.json();
     if (!articleId || !messages) return NextResponse.json({ error: '파라미터 부족' }, { status: 400 });
     await saveChatHistory(userId, articleId, messages as ChatMessage[]);
     return NextResponse.json({ ok: true });
-} 
+}

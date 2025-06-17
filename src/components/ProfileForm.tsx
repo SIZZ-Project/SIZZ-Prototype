@@ -11,6 +11,11 @@ interface ProfileFormProps {
             push_notifications?: boolean;
             theme?: 'light' | 'dark' | 'system';
         };
+        bias?: {
+            political?: 'left' | 'center' | 'right' | 'neutral';
+            economic?: 'liberal' | 'conservative' | 'neutral';
+            social?: 'liberal' | 'conservative' | 'neutral';
+        };
     };
 }
 
@@ -23,6 +28,11 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             email_notifications: initialData?.preferences?.email_notifications ?? true,
             push_notifications: initialData?.preferences?.push_notifications ?? true,
             theme: initialData?.preferences?.theme || 'system',
+        },
+        bias: {
+            political: initialData?.bias?.political || 'neutral',
+            economic: initialData?.bias?.economic || 'neutral',
+            social: initialData?.bias?.social || 'neutral',
         },
     });
 
@@ -138,6 +148,84 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                     <option value="dark">다크 모드</option>
                     <option value="system">시스템 설정 따르기</option>
                 </select>
+            </div>
+
+            <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">내 뉴스 성향</h3>
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="political-bias" className="block text-sm font-medium text-gray-700">
+                            정치적 성향
+                        </label>
+                        <select
+                            id="political-bias"
+                            value={formData.bias.political}
+                            onChange={(e) =>
+                                setFormData({
+                                    ...formData,
+                                    bias: {
+                                        ...formData.bias,
+                                        political: e.target.value as 'left' | 'center' | 'right' | 'neutral',
+                                    },
+                                })
+                            }
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        >
+                            <option value="neutral">중립</option>
+                            <option value="left">좌파</option>
+                            <option value="center">중도</option>
+                            <option value="right">우파</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label htmlFor="economic-bias" className="block text-sm font-medium text-gray-700">
+                            경제적 성향
+                        </label>
+                        <select
+                            id="economic-bias"
+                            value={formData.bias.economic}
+                            onChange={(e) =>
+                                setFormData({
+                                    ...formData,
+                                    bias: {
+                                        ...formData.bias,
+                                        economic: e.target.value as 'liberal' | 'conservative' | 'neutral',
+                                    },
+                                })
+                            }
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        >
+                            <option value="neutral">중립</option>
+                            <option value="liberal">진보</option>
+                            <option value="conservative">보수</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label htmlFor="social-bias" className="block text-sm font-medium text-gray-700">
+                            사회적 성향
+                        </label>
+                        <select
+                            id="social-bias"
+                            value={formData.bias.social}
+                            onChange={(e) =>
+                                setFormData({
+                                    ...formData,
+                                    bias: {
+                                        ...formData.bias,
+                                        social: e.target.value as 'liberal' | 'conservative' | 'neutral',
+                                    },
+                                })
+                            }
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        >
+                            <option value="neutral">중립</option>
+                            <option value="liberal">진보</option>
+                            <option value="conservative">보수</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <div className="flex justify-end">

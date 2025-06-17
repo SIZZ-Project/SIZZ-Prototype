@@ -5,12 +5,12 @@ import { useState, useEffect } from 'react';
 import { Database } from '@/types/database';
 import { useAuth } from '@clerk/nextjs';
 import { SummaryStyle } from '@/lib/services/gpt-summary';
+import { saveVote } from '@/lib/actions/votes';
 
 type Article = Database['public']['Tables']['articles']['Row'];
 
 interface NewsCardProps {
     article: Article & { userVote: boolean | null };
-    onVote: (articleId: string, voteType: boolean) => Promise<void>;
 }
 
 interface ChatMessage {
@@ -19,7 +19,7 @@ interface ChatMessage {
     summary?: string;
 }
 
-export function NewsCard({ article, onVote }: NewsCardProps) {
+export function NewsCard({ article }: NewsCardProps) {
     const { isSignedIn } = useAuth();
     const [isVoting, setIsVoting] = useState(false);
     const [showSummary, setShowSummary] = useState(false);
@@ -62,10 +62,17 @@ export function NewsCard({ article, onVote }: NewsCardProps) {
     }, [chatMessages, isSignedIn, showChat, article.id]);
 
     const handleVote = async (voteType: boolean) => {
+        if (!isSignedIn) {
+            alert('로그인이 필요합니다.');
+            return;
+        }
         if (isVoting) return;
         setIsVoting(true);
         try {
-            await onVote(article.id, voteType);
+            await saveVote(article.id, voteType);
+        } catch (error) {
+            console.error('투표 실패:', error);
+            alert('투표에 실패했습니다.');
         } finally {
             setIsVoting(false);
         }
@@ -198,7 +205,7 @@ export function NewsCard({ article, onVote }: NewsCardProps) {
                                 }`}
                         >
                             <ThumbsUp size={18} />
-                            <span>찬성</span>
+                            <span className="text-sm">찬성</span>
                         </button>
                         <button
                             onClick={() => handleVote(false)}
@@ -209,116 +216,98 @@ export function NewsCard({ article, onVote }: NewsCardProps) {
                                 }`}
                         >
                             <ThumbsDown size={18} />
-                            <span>반대</span>
+                            <span className="text-sm">반대</span>
                         </button>
                     </div>
-
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-4">
                         <button
-                            onClick={handleSummary}
-                            className="flex items-center space-x-1 px-3 py-1 rounded-md text-gray-600 hover:bg-gray-100"
+                            onClick={() => setShowSummary(!showSummary)}
+                            className="flex items-center space-x-1 text-gray-600 hover:bg-gray-100 px-3 py-1 rounded-md"
                         >
                             <MessageSquare size={18} />
-                            <span>요약</span>
+                            <span className="text-sm">요약</span>
                         </button>
                         <button
-                            onClick={() => setShowChat(true)}
-                            className="flex items-center space-x-1 px-3 py-1 rounded-md text-gray-600 hover:bg-gray-100"
+                            onClick={() => setShowChat(!showChat)}
+                            className="flex items-center space-x-1 text-gray-600 hover:bg-gray-100 px-3 py-1 rounded-md"
                         >
                             <MessageSquare size={18} />
-                            <span>대화</span>
+                            <span className="text-sm">대화</span>
                         </button>
                     </div>
                 </div>
-            </div>
 
-            {/* 요약 모달 */}
-            {showSummary && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                    <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
-                        <button
-                            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
-                            onClick={() => setShowSummary(false)}
-                        >
-                            ×
-                        </button>
-                        <h4 className="text-lg font-bold mb-4">GPT 요약</h4>
-
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                요약 스타일
-                            </label>
+                {showSummary && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                        <h3 className="text-md font-semibold mb-2">뉴스 요약</h3>
+                        <div className="mb-2">
+                            <label htmlFor="summary-style" className="sr-only">요약 스타일</label>
                             <select
+                                id="summary-style"
                                 value={summaryStyle}
                                 onChange={(e) => setSummaryStyle(e.target.value as SummaryStyle)}
-                                className="w-full border rounded px-3 py-2"
+                                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                             >
-                                <option value="concise">간단히 (1-2문장)</option>
-                                <option value="detailed">자세히 (3-4문장)</option>
-                                <option value="key-points">핵심 포인트 (3가지)</option>
+                                <option value="concise">간결하게</option>
+                                <option value="detailed">자세하게</option>
+                                <option value="bullet_points">핵심 요점</option>
                             </select>
                         </div>
-
-                        {loadingSummary ? (
-                            <div className="text-center py-4">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                <p className="mt-2 text-gray-600">요약 중...</p>
-                            </div>
-                        ) : summaryError ? (
-                            <div className="text-red-600">{summaryError}</div>
-                        ) : (
-                            <div className="prose max-w-none">
-                                {summary || '요약을 생성하려면 요약 버튼을 클릭하세요.'}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* 대화 모달 */}
-            {showChat && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                    <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
                         <button
-                            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
-                            onClick={() => setShowChat(false)}
+                            onClick={handleSummary}
+                            disabled={loadingSummary || !article.content}
+                            className="bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 disabled:opacity-50"
                         >
-                            ×
+                            {loadingSummary ? '요약 중...' : '요약하기'}
                         </button>
-                        <h4 className="text-lg font-bold mb-4">대화형 분석</h4>
-
-                        <form onSubmit={handleChat} className="mb-4">
-                            <div className="flex space-x-2">
-                                <input
-                                    type="text"
-                                    value={chatMessage}
-                                    onChange={(e) => setChatMessage(e.target.value)}
-                                    placeholder="기사에 대해 질문하세요..."
-                                    className="flex-1 border rounded px-3 py-2"
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={loadingChat}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-                                >
-                                    전송
-                                </button>
-                            </div>
-                        </form>
-
-                        {loadingChat ? (
-                            <div className="text-center py-4">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                <p className="mt-2 text-gray-600">답변 생성 중...</p>
-                            </div>
-                        ) : (
-                            <div className="prose max-w-none">
-                                {chatResponse || '질문을 입력하고 전송 버튼을 클릭하세요.'}
-                            </div>
-                        )}
+                        {summaryError && <p className="text-red-500 text-sm mt-2">Error: {summaryError}</p>}
+                        {summary && <p className="mt-2 text-gray-700 whitespace-pre-wrap">{summary}</p>}
                     </div>
-                </div>
-            )}
+                )}
+
+                {showChat && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                        <h3 className="text-md font-semibold mb-2">기사와 대화하기</h3>
+                        <div className="space-y-3 mb-4 max-h-60 overflow-y-auto pr-2">
+                            {chatMessages.length === 0 && !loadingChat && (
+                                <p className="text-gray-500 text-sm">아직 대화 기록이 없습니다. 질문을 시작하세요!</p>
+                            )}
+                            {chatMessages.map((msg, index) => (
+                                <div
+                                    key={index}
+                                    className={`p-2 rounded-md ${msg.role === 'user' ? 'bg-blue-500 text-white self-end' : 'bg-gray-100 text-gray-900 self-start'
+                                        }`}
+                                >
+                                    <p className="text-sm"><strong>{msg.role === 'user' ? '나' : 'AI'}:</strong> {msg.content}</p>
+                                    {msg.summary && <p className="text-xs text-gray-400 mt-1">요약: {msg.summary}</p>}
+                                </div>
+                            ))}
+                            {loadingChat && (
+                                <div className="p-2 rounded-md bg-gray-100 text-gray-900 self-start">
+                                    <p className="text-sm">AI: 생각 중...</p>
+                                </div>
+                            )}
+                        </div>
+                        <form onSubmit={handleChat} className="flex space-x-2">
+                            <input
+                                type="text"
+                                value={chatMessage}
+                                onChange={(e) => setChatMessage(e.target.value)}
+                                placeholder="기사에 대해 질문하세요..."
+                                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                disabled={loadingChat}
+                            />
+                            <button
+                                type="submit"
+                                disabled={loadingChat || !chatMessage.trim()}
+                                className="bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 disabled:opacity-50"
+                            >
+                                질문
+                            </button>
+                        </form>
+                    </div>
+                )}
+            </div>
         </div>
     );
 } 

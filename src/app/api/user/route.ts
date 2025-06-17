@@ -10,7 +10,7 @@ export async function GET() {
         }
 
         const supabase = createSupabaseClient();
-        const { data, error } = await supabase
+        let { data: userData, error } = await supabase
             .from('users')
             .select('*')
             .eq('clerk_id', userId)
@@ -19,19 +19,26 @@ export async function GET() {
         if (error) {
             if (error.code === 'PGRST116') {
                 // 사용자가 없으면 생성
+                const defaultUserData = {
+                    clerk_id: userId,
+                    nickname: '사용자',
+                    preferences: {
+                        notifications: {
+                            email: true,
+                            push: true
+                        },
+                        theme: 'system'
+                    },
+                    bias: {
+                        political: 'neutral',
+                        economic: 'neutral',
+                        social: 'neutral'
+                    }
+                };
+
                 const { data: newUser, error: createError } = await supabase
                     .from('users')
-                    .insert({
-                        clerk_id: userId,
-                        nickname: '사용자',
-                        preferences: {
-                            notifications: {
-                                email: true,
-                                push: true
-                            },
-                            theme: 'system'
-                        }
-                    })
+                    .insert(defaultUserData)
                     .select()
                     .single();
 
@@ -39,14 +46,39 @@ export async function GET() {
                     console.error('Error creating user:', createError);
                     return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
                 }
-
-                return NextResponse.json(newUser);
+                userData = newUser; // 생성된 사용자 데이터로 설정
+            } else {
+                console.error('Error fetching user:', error);
+                return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
             }
-            console.error('Error fetching user:', error);
-            return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
         }
 
-        return NextResponse.json(data);
+        // userData가 여전히 null이거나 기본 필드가 없는 경우를 대비하여 초기화
+        if (!userData) {
+            return NextResponse.json({ error: 'User data not found after fetch/create' }, { status: 500 });
+        }
+
+        // preferences 필드가 없으면 기본값 설정
+        if (!userData.preferences) {
+            userData.preferences = {
+                notifications: {
+                    email: true,
+                    push: true
+                },
+                theme: 'system'
+            };
+        }
+
+        // bias 필드가 없으면 기본값 설정
+        if (!userData.bias) {
+            userData.bias = {
+                political: 'neutral',
+                economic: 'neutral',
+                social: 'neutral'
+            };
+        }
+
+        return NextResponse.json(userData);
     } catch (error) {
         console.error('Error in GET /api/user:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

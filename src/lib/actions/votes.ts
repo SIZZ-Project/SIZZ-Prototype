@@ -1,38 +1,58 @@
 'use server';
 
+import { createSupabaseClient } from '@/lib/supabase/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabase } from '@/lib/supabase/client';
+import { revalidatePath } from 'next/cache';
 
 export async function saveVote(articleId: string, voteType: boolean) {
     const { userId } = await auth();
+
     if (!userId) {
-        throw new Error('인증되지 않은 사용자입니다.');
+        throw new Error('Unauthorized');
     }
 
-    // Supabase의 users 테이블에서 user_id를 가져오거나 생성합니다.
-    const { data: userData, error: userError } = await supabase
-        .from('users')
-        .upsert(
-            { clerk_id: userId },
-            { onConflict: 'clerk_id' }
-        )
-        .select('id')
+    const supabase = createSupabaseClient();
+
+    // 기존 투표 확인
+    const { data: existingVote, error: fetchError } = await supabase
+        .from('votes')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('article_id', articleId)
         .single();
 
-    if (userError || !userData) {
-        throw new Error(`사용자 정보를 가져오거나 저장하는 데 실패했습니다: ${userError?.message}`);
+    if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching existing vote:', fetchError);
+        throw new Error('기존 투표를 가져오는 데 실패했습니다.');
     }
 
-    const { id: user_id } = userData;
+    if (existingVote) {
+        // 투표가 이미 존재하면 업데이트
+        const { error: updateError } = await supabase
+            .from('votes')
+            .update({ vote_type: voteType })
+            .eq('id', existingVote.id);
 
-    const { error: voteError } = await supabase
-        .from('votes')
-        .upsert(
-            { user_id, article_id: articleId, vote_type: voteType, created_at: new Date().toISOString() },
-            { onConflict: 'user_id, article_id' }
-        );
+        if (updateError) {
+            console.error('Error updating vote:', updateError);
+            throw new Error('투표 업데이트에 실패했습니다.');
+        }
+    } else {
+        // 투표가 없으면 삽입
+        const { error: insertError } = await supabase
+            .from('votes')
+            .insert({
+                user_id: userId,
+                article_id: articleId,
+                vote_type: voteType,
+            });
 
-    if (voteError) {
-        throw new Error(`투표 저장에 실패했습니다: ${voteError.message}`);
+        if (insertError) {
+            console.error('Error inserting vote:', insertError);
+            throw new Error('투표 저장에 실패했습니다.');
+        }
     }
+
+    // 캐시 재검증 (선택사항: 투표 후 즉시 UI 업데이트를 위해)
+    revalidatePath('/');
 } 
